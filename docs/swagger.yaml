@@ -1,0 +1,174 @@
+# see me at: http://petstore.swagger.io/?url=https://raw.githubusercontent.com/jupyterhub/jupyterhub/master/docs/rest-api.yml#/default
+swagger: '2.0'
+info:
+  title: JupyterHub
+  description: The REST API for JupyterHub
+  version: 0.9.0dev
+  license:
+    name: BSD-3-Clause
+schemes:
+  [http, https]
+securityDefinitions:
+  token:
+    type: apiKey
+    name: Authorization
+    in: header
+security:
+  - token: []
+basePath: /hub
+produces:
+  - application/json
+consumes:
+  - application/json
+paths:
+  /api/users/{name}/servers/{server_name}:
+    post:
+      summary: Start a user's single-user named-server notebook server
+      parameters:
+        - name: Authorization
+          description: token auth 
+          in: header
+          required: true
+          type: string
+        - name: name
+          description: username
+          in: path
+          required: true
+          type: string
+        - name: server_name
+          description: name given to a named-server
+          in: path
+          required: true
+          type: string
+        - name: options
+          description: |
+            Spawn options can be passed as a JSON body
+            when spawning via the API instead of spawn form.
+            The structure of the options
+            will depend on the Spawner's configuration.
+          in: body
+          required: false
+          schema:
+            type: object
+      responses:
+        '200':
+          description: The user's notebook named-server status
+          schema:
+            $ref: '#/definitions/Msg'
+    delete:
+      summary: Stop a user's named-server
+      parameters:
+        - name: Authorization
+          description: token auth 
+          in: header
+          required: true
+          type: string
+        - name: name
+          description: username
+          in: path
+          required: true
+          type: string
+        - name: server_name
+          description: name given to a named-server
+          in: path
+          required: true
+          type: string
+        - name: remove
+          description: |
+            Whether to fully remove the server, rather than just stop it.
+            Removing a server deletes things like the state of the stopped server.
+          in: body
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: The user's notebook named-server status
+          schema:
+            $ref: '#/definitions/Msg'
+
+  /api/users/{name}/servers/{server_name}/process:
+    post:
+      summary:  容器 查询状态接口
+      parameters:
+        - name: Authorization
+          description: token auth 
+          in: header
+          required: true
+          type: string
+        - name: name
+          description: username
+          in: path
+          required: true
+          type: string
+        - name: server_name
+          description: name given to a named-server
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: 查询的状态信息
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                description: status code
+              message:
+                type: string
+                description: status code
+              ready:
+                type: boolean
+                description: True 已经启动完毕  Flase 正在启动
+                
+              failed:
+                type: boolean
+                description: True 启动失败  
+                
+  /login:
+    post:
+      summary: user login
+      parameters:
+      - in: body
+        name: inventoryItem
+        description: 用户登录信息
+        schema:
+          $ref: '#/definitions/LoginItem'
+      responses:
+        '200':
+          description: JSON response including the token
+          schema:
+            type: object
+            properties:
+              api_token:
+                type: string
+                description: The new API token for the user
+              status:
+                type: string
+                description: status code
+              message:
+                type: string
+                description: status code
+                
+
+definitions:
+  Msg:
+    type: object
+    properties:
+      status:
+        type: integer
+        description: 状态码,沿用jupyterhu的设计,目前是与http code保持一样 如400,401 200
+      message:
+        type: string
+        description: 提示信息,主要是错误信息,可能为空
+
+  LoginItem:
+    type: object
+    properties:
+      username:
+        type: string
+        description: 用户名
+      token:
+        type: string
+        description: 从用户中心获取的token
