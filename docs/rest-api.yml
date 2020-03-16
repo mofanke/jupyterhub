@@ -11,11 +11,12 @@ schemes:
 securityDefinitions:
   token:
     type: apiKey
-    name: Authorization
+    name: x-authorization
     in: header
 security:
   - token: []
 basePath: /hub
+host: 127.0.0.1:8000
 produces:
   - application/json
 consumes:
@@ -25,7 +26,7 @@ paths:
     post:
       summary: Start a user's single-user named-server notebook server
       parameters:
-        - name: Authorization
+        - name: x-authorization
           description: token auth 
           in: header
           required: true
@@ -51,14 +52,14 @@ paths:
           schema:
             type: object
       responses:
-        '200':
-          description: The user's notebook named-server status
-          schema:
-            $ref: '#/definitions/Msg'
+        '201':
+          description: The user's notebook named-server has started
+        '202':
+          description: The user's notebook named-server has not yet started, but has been requested
     delete:
       summary: Stop a user's named-server
       parameters:
-        - name: Authorization
+        - name: x-authorization
           description: token auth 
           in: header
           required: true
@@ -82,16 +83,14 @@ paths:
           schema:
             type: boolean
       responses:
-        '200':
-          description: The user's notebook named-server status
-          schema:
-            $ref: '#/definitions/Msg'
-
-  /api/users/{name}/servers/{server_name}/process:
-    post:
-      summary:  容器 查询状态接口
+        '204':
+          description: The user's notebook named-server has stopped
+        '202':
+          description: The user's notebook named-server has not yet stopped as it is taking a while to stop
+    get:
+      summary: Stop a user's named-server
       parameters:
-        - name: Authorization
+        - name: x-authorization
           description: token auth 
           in: header
           required: true
@@ -108,54 +107,9 @@ paths:
           type: string
       responses:
         '200':
-          description: 查询的状态信息
+          description: The user's notebook named-server status
           schema:
-            type: object
-            properties:
-              status:
-                type: string
-                description: status code
-              message:
-                type: string
-                description: status code
-              ready:
-                type: boolean
-                description: True 已经启动完毕  Flase 正在启动
-                
-              failed:
-                type: boolean
-                description: True 启动失败  
-                
-  /login:
-    post:
-      summary: user login
-      parameters:
-        - name: username
-          description: username
-          in: body
-          required: true
-          type: string
-        - name: token
-          description: token get from user center(java)
-          in: body
-          required: true
-          type: string 
-      responses:
-        '200':
-          description: JSON response including the token
-          schema:
-            type: object
-            properties:
-              api_token:
-                type: string
-                description: The new API token for the user
-              status:
-                type: string
-                description: status code
-              message:
-                type: string
-                description: status code
-                
+            $ref: '#/definitions/Server'
 
 definitions:
   Msg:
@@ -163,9 +117,50 @@ definitions:
     properties:
       status:
         type: integer
-        description: 状态码,沿用jupyterhu的设计,目前是与http code保持一样 如400,401 200
+        description: 状态码,沿用jupyterhub的设计,目前是与http code保持一样 如400,401 200
       message:
         type: string
         description: 提示信息,主要是错误信息,可能为空
-
-
+        
+        
+        
+  Server:
+    type: object
+    properties:
+      active:
+        type: boolean
+        description: 是否有效，如果为False，则启动失败
+      name:
+        type: string
+        description: The server's name. The user's default server has an empty name ('')
+      ready:
+        type: boolean
+        description: |
+          Whether the server is ready for traffic.
+          Will always be false when any transition is pending.
+      pending:
+        type: string
+        enum: ["spawn", "stop", null]
+        description: |
+          The currently pending action, if any.
+          A server is not ready if an action is pending.
+      url:
+        type: string
+        description: |
+          The URL where the server can be accessed
+          (typically /user/:name/:server.name/).
+      progress_url:
+        type: string
+        description: |
+          The URL for an event-stream to retrieve events during a spawn.
+      started:
+        type: string
+        format: date-time
+        description: UTC timestamp when the server was last started.
+      last_activity:
+        type: string
+        format: date-time
+        description: UTC timestamp last-seen activity on this server.
+      state:
+        type: object
+        description: Arbitrary internal state from this server's spawner.  Only available on the hub's users list or get-user-by-name method, and only if a hub admin.  None otherwise.
