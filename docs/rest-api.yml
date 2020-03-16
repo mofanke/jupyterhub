@@ -88,7 +88,7 @@ paths:
         '202':
           description: The user's notebook named-server has not yet stopped as it is taking a while to stop
     get:
-      summary: Stop a user's named-server
+      summary: get status of  a user's named-server
       parameters:
         - name: x-authorization
           description: token auth 
